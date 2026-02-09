@@ -348,6 +348,8 @@ docker compose build backend && docker compose up -d backend
 ```
 teste-tecnico-devops/
 ├── docker-compose.yml          # Orquestração de containers
+├── iothub/                     # Stack fornecida (opcional)
+│   └── docker-compose.yml
 ├── .env                        # Variáveis de ambiente
 ├── .env.example                # Exemplo de configuração
 ├── README.md                   # Documentação principal
