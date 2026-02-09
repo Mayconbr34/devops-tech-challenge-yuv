@@ -1,0 +1,65 @@
+# ===========================================
+# Jimi IoT Gateway - .gitignore
+# ===========================================
+
+# Arquivos de ambiente com segredos
+.env
+!.env.example
+
+# Certificados (não commitar chaves privadas!)
+certs/*.key
+certs/*.csr
+certs/*.pem
+certs/openssl.cnf
+
+# Logs
+*.log
+nginx/logs/*
+!nginx/logs/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+
+# Docker
+.docker/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dados de volumes (não commitar dados de produção)
+prometheus_data/
+grafana_data/
+loki_data/
+
+# Temporários
+tmp/
+temp/
+*.tmp
+*.bak

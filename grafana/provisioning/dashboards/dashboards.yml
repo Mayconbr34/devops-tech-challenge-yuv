@@ -1,0 +1,19 @@
+# ===========================================
+# Grafana Dashboard Provisioning
+# Jimi IoT Gateway
+# ===========================================
+
+apiVersion: 1
+
+providers:
+  - name: 'Jimi IoT Gateway'
+    orgId: 1
+    folder: 'Jimi IoT'
+    folderUid: 'jimi-iot-folder'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

@@ -1,0 +1,156 @@
+# ===========================================
+# Alertas Prometheus
+# Jimi IoT Gateway
+# ===========================================
+
+groups:
+  - name: jimi-iot-alerts
+    interval: 30s
+    rules:
+      # ===========================================
+      # Alertas de Disponibilidade
+      # ===========================================
+      - alert: BackendDown
+        expr: up{job="jimi-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Backend está fora do ar"
+          description: "O serviço backend não está respondendo há mais de 1 minuto."
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(jimi_http_errors_total[5m])) 
+            / 
+            sum(rate(jimi_http_requests_total[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "Taxa de erro acima de 5%"
+          description: "A taxa de erros HTTP está em {{ $value | humanizePercentage }} nos últimos 5 minutos."
+
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            sum(rate(jimi_http_errors_total[5m])) 
+            / 
+            sum(rate(jimi_http_requests_total[5m]))
+          ) > 0.10
+        for: 1m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Taxa de erro crítica acima de 10%"
+          description: "A taxa de erros HTTP está em {{ $value | humanizePercentage }}. Ação imediata necessária!"
+
+      # ===========================================
+      # Alertas de Latência
+      # ===========================================
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(jimi_request_latency_ms_bucket[5m])) by (le, endpoint)
+          ) > 500
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "Latência P95 acima de 500ms"
+          description: "O endpoint {{ $labels.endpoint }} está com latência P95 de {{ $value }}ms."
+
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99, 
+            sum(rate(jimi_request_latency_ms_bucket[5m])) by (le, endpoint)
+          ) > 1000
+        for: 5m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Latência P99 acima de 1s"
+          description: "O endpoint {{ $labels.endpoint }} está com latência P99 de {{ $value }}ms."
+
+      # ===========================================
+      # Alertas de Webhooks
+      # ===========================================
+      - alert: NoWebhooksReceived
+        expr: |
+          sum(increase(jimi_webhooks_received_total[15m])) == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "Nenhum webhook recebido nos últimos 15 minutos"
+          description: "Verificar se a integração com Jimi Cloud está funcionando."
+
+      - alert: HighWebhookErrorRate
+        expr: |
+          (
+            sum(rate(jimi_webhooks_received_total{status="error"}[5m])) 
+            / 
+            sum(rate(jimi_webhooks_received_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "Alta taxa de erros em webhooks"
+          description: "{{ $value | humanizePercentage }} dos webhooks estão falhando."
+
+      # ===========================================
+      # Alertas de Infraestrutura
+      # ===========================================
+      - alert: PrometheusTargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Target {{ $labels.job }} está fora do ar"
+          description: "O target {{ $labels.instance }} do job {{ $labels.job }} não está respondendo."
+
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job="jimi-backend"} 
+            / 1024 / 1024
+          ) > 512
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "Uso de memória alto no backend"
+          description: "O backend está usando {{ $value }}MB de memória."
+
+  # ===========================================
+  # Alertas de SLA
+  # ===========================================
+  - name: jimi-iot-sla
+    interval: 1m
+    rules:
+      - alert: SLAViolation
+        expr: |
+          (
+            sum(rate(jimi_http_requests_total{status=~"2.."}[1h])) 
+            / 
+            sum(rate(jimi_http_requests_total[1h]))
+          ) < 0.99
+        for: 5m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Violação de SLA - Disponibilidade abaixo de 99%"
+          description: "A disponibilidade atual é de {{ $value | humanizePercentage }}."

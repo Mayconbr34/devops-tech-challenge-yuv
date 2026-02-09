@@ -1,0 +1,135 @@
+# ===========================================
+# Promtail Configuration
+# Jimi IoT Gateway
+# ===========================================
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    tenant_id: jimi-iot
+
+scrape_configs:
+  # ===========================================
+  # Logs do Docker via API
+  # ===========================================
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Filtrar apenas containers do projeto
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/jimi-.*'
+        action: keep
+      # Definir caminho do log do container
+      - source_labels: ['__meta_docker_container_log_path']
+        target_label: __path__
+      # Extrair nome do container
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container
+      # Labels do container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        target_label: project
+    pipeline_stages:
+      # Parse do formato docker json-file
+      - json:
+          expressions:
+            log: log
+            stream: stream
+            time: time
+      # Parse do JSON estruturado do app (quando existir)
+      - json:
+          source: log
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+            event: event
+            device_id: device_id
+            endpoint: endpoint
+      # Extrair campos específicos
+      - labels:
+          level:
+          event:
+          endpoint:
+          stream:
+      # Timestamp preferencial do app
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+      # Output final
+      - output:
+          source: message
+
+  # ===========================================
+  # Logs do Nginx (Access)
+  # ===========================================
+  - job_name: nginx-access
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          log_type: access
+          __path__: /var/log/nginx/access.log
+    pipeline_stages:
+      # Parse JSON do Nginx
+      - json:
+          expressions:
+            time_local: time_local
+            remote_addr: remote_addr
+            request: request
+            status: status
+            body_bytes_sent: body_bytes_sent
+            request_time: request_time
+            http_user_agent: http_user_agent
+            upstream_response_time: upstream_response_time
+            request_id: request_id
+      # Labels
+      - labels:
+          status:
+          remote_addr:
+      # Métricas (opcional)
+      - metrics:
+          http_request_duration_seconds:
+            type: Histogram
+            description: "HTTP request duration"
+            source: request_time
+            config:
+              buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+
+  # ===========================================
+  # Logs do Nginx (Error)
+  # ===========================================
+  - job_name: nginx-error
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          log_type: error
+          __path__: /var/log/nginx/error.log
+    pipeline_stages:
+      # Parse básico de erro do Nginx
+      - regex:
+          expression: '^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] (?P<pid>\d+)#(?P<tid>\d+): (?P<message>.*)$'
+      - labels:
+          level:
+      - timestamp:
+          source: timestamp
+          format: '2006/01/02 15:04:05'
+      # Normalizar em JSON Lines
+      - template:
+          source: message_json
+          template: '{"timestamp":"{{ .timestamp }}","level":"{{ .level }}","message":"{{ .message }}"}'
+      - output:
+          source: message_json
