@@ -414,10 +414,8 @@ echo "Teste concluído!"
 
 ## 📝 Licença
 
-Este projeto é parte de um desafio técnico para a posição de DevOps Pleno.
+Este projeto é parte de um desafio técnico para a posição de DevOps Pleno - Yuv.
 
 ---
 
-**Desenvolvido com ❤️ para o desafio Jimi IoT Gateway**
-# devops-tech-challenge-yuv
-# devops-tech-challenge-yuv
+**Desenvolvido com ❤️ para o desafio Jimi IoT Gateway - Yuv**
