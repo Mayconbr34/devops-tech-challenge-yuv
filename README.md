@@ -1,4 +1,4 @@
-# 🚀 Jimi IoT Gateway
+# 🚀 Jimi IoT Gateway - Yuv
 
 > Gateway de recepção de dados IoT com infraestrutura como código, redes seguras e telemetria completa.
 > Desafio técnico DevOps Pleno — Yuv.
