@@ -418,3 +418,4 @@ Este projeto é parte de um desafio técnico para a posição de DevOps Pleno.
 
 **Desenvolvido com ❤️ para o desafio Jimi IoT Gateway**
 # devops-tech-challenge-yuv
+# devops-tech-challenge-yuv
